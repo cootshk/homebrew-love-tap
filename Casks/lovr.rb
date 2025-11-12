@@ -11,5 +11,28 @@ cask "lovr" do
   app "lovr.app"
   binary "#{appdir}/lovr.app/Contents/MacOS/lovr"
 
+  postflight do
+    puts "Installing .dylib files to #{ENV.fetch("HOMEBREW_PREFIX", "/opt/homebrew")}/lib"
+    # Install .dylib files
+    lib_dir = "#{appdir}/lovr.app/Contents/MacOS"
+    target_dir = "#{ENV.fetch("HOMEBREW_PREFIX", "/opt/homebrew")}/lib"
+    dylib_files = Dir["#{lib_dir}/*.dylib"]
+    dylib_files.each do |dylib|
+      # Symlink
+      target_path = File.join(target_dir, File.basename(dylib))
+      File.symlink(dylib, target_path) unless File.exist?(target_path)
+    end
+  end
+
+  uninstall_postflight do
+    # Remove .dylib files
+    lib_dir = "#{appdir}/lovr.app/Contents/MacOS"
+    dylib_files = Dir["#{lib_dir}/*.*"]
+    dylib_files.each do |dylib|
+      target_path = File.join(ENV.fetch("HOMEBREW_PREFIX", "/opt/homebrew"), "lib", File.basename(dylib))
+      File.delete(target_path) if File.symlink?(target_path)
+    end
+  end
+
   zap trash: "~/Library/Saved Application State/org.bjornbytes.lovr.savedState"
 end
